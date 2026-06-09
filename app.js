@@ -1,6 +1,7 @@
 const DEFAULT_BACKEND = "https://sec-edgar-proxy.ecamacho773.workers.dev";
 const CACHE_TTL_MS = 1000 * 60 * 60 * 24;
 const CACHE_VERSION = "v3";
+const PERFECT_SCORES_KEY = "fqs:perfect-scores:v1";
 
 const CPI = {
   2015: 0.1, 2016: 1.3, 2017: 2.1, 2018: 2.4, 2019: 1.8,
@@ -86,6 +87,9 @@ const el = {
   table: document.querySelector("#dataTable"),
   copy: document.querySelector("#copyButton"),
   csv: document.querySelector("#csvButton"),
+  perfectTable: document.querySelector("#perfectTable"),
+  perfectExport: document.querySelector("#perfectExportButton"),
+  perfectClear: document.querySelector("#perfectClearButton"),
 };
 
 let state = { payload: null, submissions: null, checks: [], activeMetric: "revenue" };
@@ -114,6 +118,9 @@ el.chartMetric.addEventListener("change", () => {
 });
 el.copy.addEventListener("click", copyJson);
 el.csv.addEventListener("click", exportCsv);
+el.perfectExport.addEventListener("click", exportPerfectScores);
+el.perfectClear.addEventListener("click", clearPerfectScores);
+renderPerfectScores();
 
 function cleanBackend() {
   return (el.backend.value || DEFAULT_BACKEND).trim().replace(/\/+$/, "");
@@ -248,17 +255,28 @@ function render(payload, submissions, checks) {
   const company = profile.name || payload.entityName || symbol;
   const passItems = buildScore(rows);
   const passed = passItems.filter((item) => item.status === "pass").length;
+  const scoreText = `${passed}/${passItems.length}`;
 
   el.companyMeta.textContent = `${exchange}${profile.sicDescription ? ` - ${profile.sicDescription}` : ""}`;
   el.companyTitle.textContent = `${company} (${symbol})`;
   el.yearRange.textContent = `FY ${rows[0].fiscal_year}-${rows[rows.length - 1].fiscal_year} - CIK ${payload.cik || "unknown"} - ${payload.cache || "source unknown"}`;
-  el.scoreNumber.textContent = `${passed}/${passItems.length}`;
+  el.scoreNumber.textContent = scoreText;
   el.scoreLabel.textContent = "criteria passed";
   el.sourceLine.textContent = checks.map((check) => check.ok ? `${check.name}: ${formatBytes(check.bytes)} in ${check.ms} ms` : `${check.name}: ${check.error}`).join(" | ");
 
   el.summaryGrid.replaceChildren(...passItems.map(metricCard));
   renderTable(rows);
   drawChart();
+  if (passed === passItems.length) {
+    savePerfectScore({
+      symbol,
+      company,
+      score: scoreText,
+      years: `${rows[0].fiscal_year}-${rows[rows.length - 1].fiscal_year}`,
+      analyzedAt: new Date().toISOString(),
+      source: checks.map((check) => check.name).join(" + "),
+    });
+  }
 
   el.empty.classList.add("hidden");
   el.result.classList.remove("hidden");
@@ -646,6 +664,89 @@ function exportCsv() {
   const lines = [header, ...rows.map((row) => header.map((key) => row[key] ?? ""))];
   const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
   download(`${el.ticker.value.trim().toUpperCase() || "company"}_metrics.csv`, csv, "text/csv");
+}
+
+function readPerfectScores() {
+  try {
+    return JSON.parse(localStorage.getItem(PERFECT_SCORES_KEY)) || [];
+  } catch {
+    return [];
+  }
+}
+
+function writePerfectScores(rows) {
+  try {
+    localStorage.setItem(PERFECT_SCORES_KEY, JSON.stringify(rows));
+  } catch {
+    showMessage("Could not save the perfect score locally in this browser.");
+  }
+}
+
+function savePerfectScore(entry) {
+  const rows = readPerfectScores();
+  const key = `${entry.symbol}:${entry.years}`;
+  const next = [
+    entry,
+    ...rows.filter((row) => `${row.symbol}:${row.years}` !== key),
+  ].slice(0, 50);
+  writePerfectScores(next);
+  renderPerfectScores();
+}
+
+function renderPerfectScores() {
+  const rows = readPerfectScores();
+  const header = ["Ticker", "Company", "Score", "Years", "Analyzed", "Source"];
+  el.perfectTable.replaceChildren();
+
+  const thead = document.createElement("thead");
+  const headRow = document.createElement("tr");
+  header.forEach((cell) => {
+    const th = document.createElement("th");
+    th.textContent = cell;
+    headRow.append(th);
+  });
+  thead.append(headRow);
+
+  const tbody = document.createElement("tbody");
+  if (!rows.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = header.length;
+    cell.textContent = "No 10/10 results saved yet.";
+    row.append(cell);
+    tbody.append(row);
+  } else {
+    rows.forEach((entry) => {
+      const row = document.createElement("tr");
+      [
+        entry.symbol,
+        entry.company,
+        entry.score,
+        entry.years,
+        new Date(entry.analyzedAt).toLocaleString(),
+        entry.source,
+      ].forEach((value) => {
+        const cell = document.createElement("td");
+        cell.textContent = value || "";
+        row.append(cell);
+      });
+      tbody.append(row);
+    });
+  }
+  el.perfectTable.append(thead, tbody);
+}
+
+function exportPerfectScores() {
+  const rows = readPerfectScores();
+  const header = ["symbol", "company", "score", "years", "analyzedAt", "source"];
+  const lines = [header, ...rows.map((row) => header.map((key) => row[key] ?? ""))];
+  const csv = lines.map((line) => line.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(",")).join("\n");
+  download("perfect_quality_scores.csv", csv, "text/csv");
+}
+
+function clearPerfectScores() {
+  writePerfectScores([]);
+  renderPerfectScores();
 }
 
 async function copyJson() {
