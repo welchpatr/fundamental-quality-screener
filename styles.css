@@ -206,6 +206,7 @@ button:disabled {
 .metric-card,
 .chart-panel,
 .detail-panel,
+.perfect-panel,
 .company-band,
 .empty,
 .message {
@@ -347,7 +348,8 @@ button:disabled {
 }
 
 .chart-panel,
-.detail-panel {
+.detail-panel,
+.perfect-panel {
   margin-top: 12px;
   padding: 18px;
   box-shadow: 0 8px 24px rgba(16, 24, 32, 0.05);
