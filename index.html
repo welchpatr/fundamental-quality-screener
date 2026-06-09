@@ -116,6 +116,22 @@
         <h2>Enter a ticker to run the screen.</h2>
         <p>Start with a symbol. The app keeps the download small, then fills gaps only when it has to.</p>
       </section>
+
+      <section class="perfect-panel" aria-label="Perfect quality screen history">
+        <div class="panel-header">
+          <div>
+            <h3>Perfect Scores</h3>
+            <p>Companies that scored 10/10 are kept here for future reference on this browser.</p>
+          </div>
+          <div class="button-row">
+            <button id="perfectExportButton" type="button">Export list</button>
+            <button id="perfectClearButton" type="button">Clear</button>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="perfectTable"></table>
+        </div>
+      </section>
     </main>
 
     <script src="./app.js"></script>
