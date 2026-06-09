@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fundamental Quality Screener</title>
+    <link rel="stylesheet" href="./styles.css">
+  </head>
+  <body>
+    <main class="app">
+      <section class="topbar" aria-label="Ticker analysis controls">
+        <div>
+          <h1>Fundamental Quality Screener</h1>
+          <p>SEC-backed fundamentals, cleaned into a quick quality read.</p>
+          <p class="data-note">Data sourced directly from SEC EDGAR 10-K / 10-K/A XBRL filings. Enter a US-listed ticker to run a 10-point quality screen. If compact metrics are sparse, the app falls back to targeted SEC companyconcept XBRL tags for missing years or fields.</p>
+        </div>
+      </section>
+
+      <section class="controls" aria-label="Analyze a company">
+        <label class="field ticker-field">
+          <span>Ticker</span>
+          <input id="tickerInput" autocomplete="off" placeholder="AAPL, KO, MSFT" spellcheck="false">
+        </label>
+        <label class="field">
+          <span>Exclude fiscal years</span>
+          <input id="excludeInput" autocomplete="off" placeholder="2026, 2025">
+        </label>
+        <label class="toggle-field">
+          <input id="exclude2020Toggle" type="checkbox">
+          <span>Exclude 2020</span>
+        </label>
+        <label class="field endpoint-field">
+          <span>Backend</span>
+          <input id="backendInput" autocomplete="off" spellcheck="false">
+        </label>
+        <button class="primary" id="analyzeButton" type="button">Analyze</button>
+      </section>
+
+      <section class="status-grid" aria-label="Data source status">
+        <article class="status-card" id="metricsStatus">
+          <span class="dot pending"></span>
+          <div>
+            <strong>SEC metrics</strong>
+            <p>Compact annual metrics.</p>
+          </div>
+        </article>
+        <article class="status-card" id="submissionsStatus">
+          <span class="dot pending"></span>
+          <div>
+            <strong>SEC submissions</strong>
+            <p>Company and filing context.</p>
+          </div>
+        </article>
+        <article class="status-card" id="cacheStatus">
+          <span class="dot pending"></span>
+          <div>
+            <strong>Local cache</strong>
+            <p>Recent successful results.</p>
+          </div>
+        </article>
+        <article class="status-card" id="fallbackStatus">
+          <span class="dot pending"></span>
+          <div>
+            <strong>SEC fallback</strong>
+            <p>Targeted concepts for gaps.</p>
+          </div>
+        </article>
+      </section>
+
+      <section id="message" class="message hidden" role="status"></section>
+
+      <section id="result" class="result hidden" aria-live="polite">
+        <div class="company-band">
+          <div>
+            <p id="companyMeta"></p>
+            <h2 id="companyTitle"></h2>
+            <p id="yearRange"></p>
+          </div>
+          <div class="score-lockup">
+            <div id="scoreNumber"></div>
+            <span id="scoreLabel"></span>
+          </div>
+        </div>
+
+        <div class="summary-grid" id="summaryGrid"></div>
+
+        <section class="chart-panel" aria-label="Performance trends">
+          <div class="panel-header">
+            <div>
+              <h3>Ten-Year Trends</h3>
+              <p>Revenue, margins, returns, leverage, and capital return.</p>
+            </div>
+            <select id="chartMetric" aria-label="Trend metric"></select>
+          </div>
+          <canvas id="trendChart" width="960" height="320"></canvas>
+        </section>
+
+        <section class="detail-panel">
+          <div class="panel-header">
+            <div>
+              <h3>Review Data</h3>
+              <p id="sourceLine"></p>
+            </div>
+            <div class="button-row">
+              <button id="copyButton" type="button">Copy JSON</button>
+              <button id="csvButton" type="button">Export CSV</button>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table id="dataTable"></table>
+          </div>
+        </section>
+      </section>
+
+      <section id="empty" class="empty">
+        <h2>Enter a ticker to run the screen.</h2>
+        <p>Start with a symbol. The app keeps the download small, then fills gaps only when it has to.</p>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
